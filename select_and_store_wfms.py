@@ -11,7 +11,7 @@ import gzip
 
 import sys, os
 
-
+import Selections as sel
 
 def run() :
     fname   = sys.argv[1]
@@ -19,10 +19,9 @@ def run() :
 
     # make sure the output directory exists
     print('Output prefix:', os.path.dirname(outpref))
-    os.makedirs(os.path.dirname(outpref), exist_ok=True)
-    subdirs=['avg', '2dhist', 'charge']
-    for subd in subdirs :
-        os.makedirs(os.path.dirname(outpref)+'/'+subd, exist_ok=True)
+    outdir=os.path.dirname(outpref)
+    if len(outdir) :
+        os.makedirs(outdir, exist_ok=True)
 
 
     # How many waveforms to be read in a batch and how many in total
@@ -51,21 +50,13 @@ def run() :
     for t in tree.iterate(['adcs','channel'], step_size=N_WFMS, entry_stop=MAX_WFMS) :
         print(f'Starting processing batch of data: {counter}...')
         wfm_counter += ak.num(t.channel, axis=0)
-        # sort by channel
-        chan_sort = ak.argsort(t.channel)
-        # channel runs
-        chan_runs = ak.run_lengths(t.channel[chan_sort])
-        channels  = ak.firsts(ak.unflatten(t.channel[chan_sort], chan_runs))
-        # Waveforms sorted by channel
-        wfms_all  = ak.unflatten(t.adcs[chan_sort], chan_runs)
-        wfms_all  = ak.values_astype(wfms_all, np.float64)
+
+        channels,wfms_all = sel.SortByChannel(t.channel, t.adcs)
 
         # clean pretrigger
-        rms_mask = ak.nanstd(wfms_all[...,:PRETRIGGER],axis=-1) < 5
-        wfms = wfms_all[rms_mask]
+        wfms = sel.CleanByPretrigRMS(wfms_all, pretrigger=PRETRIGGER, rmsthld=5)
         # remove pedestal
-        means = ak.nanmean(wfms[...,:PRETRIGGER],axis=-1)
-        wfms = wfms - means
+        wfms = sel.RemovePedestal(wfms, PRETRIGGER)
 
         # store selected waveforms
         pkl.dump((channels,wfms), outf)
