@@ -34,9 +34,9 @@ def run() :
             MAX_WFMS = int(sys.argv[3])
 
 
-    # get data
-    tree = ur.open(fname+':raw_waveforms')
-    print(f'Input tree has {tree.num_entries} entries.')
+    # print out available data
+    with ur.open(fname+':raw_waveforms') as tree :# this should not be reading data in, only the size
+        print(f'Input tree has {tree.num_entries} entries.')
 
     # dump waforms by channel into a gzipped pickle file
     outfname = outpref + 'waveforms.pkl.gz'
@@ -47,7 +47,7 @@ def run() :
 
     counter     = 0
     wfm_counter = 0
-    for t in tree.iterate(['adcs','channel'], step_size=N_WFMS, entry_stop=MAX_WFMS) :
+    for t in ur.iterate(fname+':raw_waveforms', ['adcs','channel'], step_size=N_WFMS, entry_stop=MAX_WFMS) :
         print(f'Starting processing batch of data: {counter}...')
         wfm_counter += ak.num(t.channel, axis=0)
 

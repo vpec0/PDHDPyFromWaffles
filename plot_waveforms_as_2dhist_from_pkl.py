@@ -1,7 +1,6 @@
 import gzip
 import pickle
 import sys, os
-import uproot as ur
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib as mpl
@@ -26,23 +25,31 @@ def run() :
     os.makedirs(os.path.dirname(outpref), exist_ok=True)
 
 
-    # How many waveforms to be read in a batch and how many in total
-    N_WFMS = 50000
-    MAX_WFMS = 50000
+    NMAX=-1
     if len(sys.argv) > 3 :
-        if sys.argv[3] == -1 or sys.argv[3].lower() == 'none' :
-            MAX_WFMS = None
-        else:
-            MAX_WFMS = int(sys.argv[3])
+        NMAX=int(sys.argv[3])
+
 
     hists_by_chan = dict()
     bins_by_chan  = dict()
     counter = 0
-    for channels, wfms in tls.RetrieveData(fname, maxwfms=MAX_WFMS) :
-        print(f'Histogramming partial data... {counter}')
-        AddData(hists_by_chan, bins_by_chan, channels, wfms)
-        counter += 1
+    with gzip.open(fname, 'rb') as f :
+        while True:
+            if NMAX > -1 and counter >= NMAX :
+                break
+            try:
+                data = pickle.load(f)
+                if isinstance(data, dict) :
+                    channels = data['channels']
+                    wfms = data['wfms']
+                else :
+                    channels,wfms = data
 
+                print(f'Histogramming partial data... {counter}')
+                AddData(hists_by_chan, bins_by_chan, channels, wfms)
+            except EOFError:
+                break
+            counter += 1
     SaveToGZ(outpref+'all_2dhists.pkl.gz', (hists_by_chan, bins_by_chan))
     PlotHists(hists_by_chan, bins_by_chan)
 
