@@ -29,7 +29,7 @@ def run() :
         wfmsroi_scaled = wfmsroi / scale
         # get temp mean
         n_wfms = ak.num(wfmsroi,axis=1)
-        wfmsroi_mean = ak.sum(wfmsroi_scaled, axis=1,keepdims=True)/n_wfms
+        wfmsroi_mean = ak.mean(wfmsroi_scaled,axis=1,keepdims=True)
 
         plt.plot(ak.ravel(wfmsroi_mean[0]))
         plt.savefig(outpref+'mean_wfm.png')
@@ -43,8 +43,20 @@ def run() :
         plt.savefig(outpref+'wfm_res.png')
 
 
+        tot_wfms = ak.count(wfms)
+
         # clean pretrigger
-        #rms_mask = ak.nanstd(wfmsroi-wfmsroi_mean*scale,axis=-1) < rmsthld
+        for rmsthld in range(5,16,2) :
+            rms_mask = ak.nanstd(wfm_res,axis=-1) < rmsthld
+
+            filtered_wfs = ak.count(wfms[rms_mask])
+
+            plt.clf()
+            for wfm in wfms[rms_mask][0,:5] :
+                plt.plot(wfm[0:500])
+            plt.savefig(outpref+f'filtered_wfms_rmsthld{rmsthld}.png')
+
+            print(f'Eff of RMS {rmsthld} thld is {filtered_wfs/tot_wfms}')
 
 
 
