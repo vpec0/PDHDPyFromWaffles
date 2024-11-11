@@ -40,11 +40,22 @@ def run() :
     counter = 0
     for channels, wfms in tls.RetrieveData(fname, maxwfms=MAX_WFMS) :
         print(f'Histogramming partial data... {counter}')
+        wfms = FilterWfms(wfms)
         AddData(hists_by_chan, bins_by_chan, channels, wfms)
         counter += 1
 
     SaveToGZ(outpref+'all_2dhists.pkl.gz', (hists_by_chan, bins_by_chan))
     PlotHists(hists_by_chan, bins_by_chan)
+
+
+def FilterWfms(wfms) :
+    wfms = sel.CleanByPretrigRMS(wfms, pretrigger=120, rmsthld=5)
+    # wfms = sel.CleanByTailRMS(wfms,tail_start=400,tail_end=600,rmsthld=5)
+    wfms = sel.RemovePedestal(wfms,pretrigger=120)
+    wfms = sel.CleanByMeanRMS(wfms,start=100,stop=400,rmsthld=5)
+
+    return wfms
+
 
 def AddData(hists_by_chan, bins_by_chan, channels, wfms) :
     print(f'Processing {ak.num(ak.flatten(wfms,axis=1),axis=0)} waveforms')
