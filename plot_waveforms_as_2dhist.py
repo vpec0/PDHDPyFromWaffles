@@ -37,22 +37,46 @@ def run() :
 
     hists_by_chan = dict()
     bins_by_chan  = dict()
+    sums_by_channel = dict()
+    nwfms_by_channel = dict()
     counter = 0
-    for channels, wfms in tls.RetrieveData(fname, maxwfms=MAX_WFMS) :
+    for channels, wfms in tls.RetrieveData(fname, maxwfms=MAX_WFMS if MAX_WFMS != -1 else None) :
         print(f'Histogramming partial data... {counter}')
         wfms = FilterWfms(wfms)
         AddData(hists_by_chan, bins_by_chan, channels, wfms)
+
+        scale  = ak.max(abs(wfms), axis=-1)
+        summed = ak.sum(wfms, axis=1)
+        counts = ak.num(wfms, axis=1)
+
+        for ch,sumwfm,count in zip(channels,summed,counts) :
+            if ch not in sums_by_channel :
+                sums_by_channel[ch] = sumwfm
+                nwfms_by_channel[ch] = count
+            else :
+                sums_by_channel[ch]  = sums_by_channel[ch]  + sumwfm
+                nwfms_by_channel[ch] = nwfms_by_channel[ch] + count
+
         counter += 1
 
+    avg_by_channel = dict()
+    for ch,sum,count in zip(sums_by_channel.keys(), sums_by_channel.values(), nwfms_by_channel.values()) :
+        avg_by_channel[ch] = sum/count
+
+    for ch,avg in avg_by_channel.items() :
+        plt.cla()
+        plt.plot(avg)
+        plt.savefig(outpref+f'avg_wfm_ch_{ch}.png')
+
     SaveToGZ(outpref+'all_2dhists.pkl.gz', (hists_by_chan, bins_by_chan))
-    PlotHists(hists_by_chan, bins_by_chan)
+    #PlotHists(hists_by_chan, bins_by_chan)
 
 
 def FilterWfms(wfms) :
     wfms = sel.CleanByPretrigRMS(wfms, pretrigger=120, rmsthld=5)
     # wfms = sel.CleanByTailRMS(wfms,tail_start=400,tail_end=600,rmsthld=5)
     wfms = sel.RemovePedestal(wfms,pretrigger=120)
-    wfms = sel.CleanByMeanRMS(wfms,start=100,stop=400,rmsthld=5)
+    wfms = sel.CleanByMeanRMS(wfms,start=100,stop=1000,rmsthld=8)
 
     return wfms
 
@@ -74,9 +98,9 @@ def PlotHists(hists_by_chan, bins) :
     ax.set_xlabel('Time ticks')
     ax.set_ylabel('ADC')
     fig.tight_layout()
-    cb = fig.colorbar(mpl.cm.ScalarMappable())
     print('Plotting 2d waveform hists...')
     counter = 0
+    first = True
     for chan,hist in hists_by_chan.items() :
         x,y = bins[chan]
 
@@ -89,7 +113,11 @@ def PlotHists(hists_by_chan, bins) :
         #cm = plt.pcolormesh(xedges,yedges,hist.T, cmap='RdBu', vmin=-max, vmax=max)
         cm = plt.pcolormesh(x,y,hist.T, cmap='summer', norm=mcolors.LogNorm(vmin=1, vmax=max_glob))
             #plt.pcolormesh(xedges, yedges, hist)
-        cb.update_normal(cm)
+        if first :
+            cb = fig.colorbar(cm)
+            first = False
+        else :
+            cb.update_normal(cm)
         fig.savefig(outpref+f'2dhist_wfm_{chan}.png')
 
         counter += 1

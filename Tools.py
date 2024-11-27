@@ -20,6 +20,8 @@ class RetrieveData :
 
         self.niter = niter
         self.maxwfms = maxwfms
+        if maxwfms == -1 :
+            self.maxwfms = None
         self.counter = 0
         self.wfmcounter = 0
 
