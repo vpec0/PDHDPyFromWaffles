@@ -83,8 +83,8 @@ def run() :
     with ur.recreate(outpref+'charge_hists.root') as outf :
         for ch,counts in hists_by_chan.items() : # loop over each cahnnel and get the channel id and histogram counts
             bins = np.histogram_bin_edges(None, bins=len(counts), range=qrange)
-            # recreate numpy histogram and store it in the output ROOT file
-            outf[f'charge_hist_{ch}'] = np.histogram(bins[:-1], bins=bins, weights=counts)
+            # store the counts and bins as a TH1D; this is taken care of by UpROOT
+            outf[f'charge_hist_{ch}'] = (counts, bins)
 
     #PlotHists(hists_by_chan, counts_by_chan)
 
