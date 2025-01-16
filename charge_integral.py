@@ -37,7 +37,7 @@ def run() :
     #outf = OpenGZ(outpref+'selected_zeroed_wfms.pkl.gz')
 
 
-    N_WFMS=500
+    N_WFMS=10000
     # Maximum number of waveforms to read in total
     NMAX=-1
     if len(sys.argv) > 3 :
@@ -52,7 +52,7 @@ def run() :
 
     # iterate over batches in the input file; t is the input tree, only reading branches adcs and channel
     for t in ur.iterate(fname+':raw_waveforms',['adcs','channel'], step_size=N_WFMS) :
-        if total_wfms >= NMAX :
+        if NMAX > -1 and total_wfms >= NMAX :
             break
         print(f'Starting processing batch of data: {counter}...')
 
