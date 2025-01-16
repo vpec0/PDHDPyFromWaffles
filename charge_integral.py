@@ -37,7 +37,7 @@ def run() :
     #outf = OpenGZ(outpref+'selected_zeroed_wfms.pkl.gz')
 
 
-    N_WFMS=10000
+    N_WFMS=20000
     # Maximum number of waveforms to read in total
     NMAX=-1
     if len(sys.argv) > 3 :
