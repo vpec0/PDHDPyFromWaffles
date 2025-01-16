@@ -73,7 +73,8 @@ def run() :
         # usefull counting
         counter += 1
         total_wfms += ak.count(t.channel)
-        selected_wfms += ak.sum(counts_by_chan.values())
+
+    selected_wfms = ak.sum(counts_by_chan.values())
 
     print(f'Number of input waveforms:    {total_wfms}')
     print(f'Number of selected waveforms: {selected_wfms}')
