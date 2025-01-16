@@ -37,7 +37,7 @@ def run() :
     #outf = OpenGZ(outpref+'selected_zeroed_wfms.pkl.gz')
 
 
-    N_WFMS=50000
+    N_WFMS=500
     # Maximum number of waveforms to read in total
     NMAX=-1
     if len(sys.argv) > 3 :
@@ -51,7 +51,9 @@ def run() :
     # print(f'Input tree has {tree.num_entries} entries.')
 
     # iterate over batches in the input file; t is the input tree, only reading branches adcs and channel
-    for t in ur.iterate(fname+':raw_waveforms',['adcs','channel'], step_size=N_WFMS, entry_stop=NMAX) :
+    for t in ur.iterate(fname+':raw_waveforms',['adcs','channel'], step_size=N_WFMS) :
+        if total_wfms >= NMAX :
+            break
         print(f'Starting processing batch of data: {counter}...')
 
         # sort by channel
@@ -66,7 +68,7 @@ def run() :
         wfms_all  = ak.values_astype(wfms_all, np.float64)
 
         # do our stuff on the sorted waveforms
-        ProcessBatch(outf, hists_by_chan, counts_by_chan, channels, wfms_all)
+        ProcessBatch( hists_by_chan, counts_by_chan, channels, wfms_all)
 
         # usefull counting
         counter += 1
@@ -88,7 +90,7 @@ def run() :
 
     #PlotHists(hists_by_chan, counts_by_chan)
 
-def ProcessBatch(outf, hists_by_chan, counts_by_chan, channels, wfms) :
+def ProcessBatch(hists_by_chan, counts_by_chan, channels, wfms) :
     '''
     Function to process single batch of waveforms read from the input file.
     '''
@@ -106,7 +108,7 @@ def ProcessBatch(outf, hists_by_chan, counts_by_chan, channels, wfms) :
     # remove pedestal
     means = ak.nanmean(wfms[...,:PRETRIGGER],axis=-1)
     wfms = wfms - means
-
+    channels = channels[ak.any(rms_mask, axis=-1)]
 
     # Get ROI
     start=PRETRIGGER
